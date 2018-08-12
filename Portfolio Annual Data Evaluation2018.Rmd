@@ -1,0 +1,179 @@
+---
+title: "Portfolio Annual Data Evaluation"
+author: "Paul Leiby"
+date: "Aug 11, 2018"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## We can look at the range of portfolio data
+
+Accesible from from BetterInvesting
+
+```{r cars}
+library(tidyverse)
+library(readr)
+library(tidyquant)
+```
+
+
+```{r pressure, echo=FALSE}
+# read set of stock data downloaded from ???
+tkrData = read_delim("BOIC_Portfolio_AnnualData_20180506.txt",
+                     delim="\t", comment="#")
+```
+
+```{r}
+tkrData
+
+```
+
+```{r}
+tkrData %>% ggplot(aes(x=Year, y=HighPrice/EPS, colour=TKR)) + 
+  geom_line() + ggtitle("Annual High PE Ratios")
+```
+
+### Gather stock price histories from Yahoo Finance
+
+```{r}
+BOICtickers <- tribble(
+  ~ symbol,  ~ full_names,
+  "AAPL",    "Apple",
+  "CMI",     "Cummins",
+  "CP",      "Canadian Pacific",
+  "CRI",     "Carters Inc",
+  "DISCA",   "Discovery Comm",  
+  "DKS",     "Dicks Sporting Goods",
+  "DY",      "Dycom", 
+  "GIL",     "Gilden",
+  "GOOG",    "Google",
+  "JAZZ",    "Jazz Pharma",
+  "LKQ",     "LKQ",
+  "PHM",     "Pulte",
+  "QCOM",    "Qualcomm",
+  "R",       "Ryder")
+
+BOICtickersHistorical <- tribble(
+  ~ symbol,  ~ full_names,
+  "AAPL",    "xxx",
+  "CBI",     "xxx",
+  "CMI",     "xxx",
+  "EMC",     "xxx",
+  "GIL",     "xxx",
+  "HAR",     "xxx",
+  "LKQ",     "xxx",
+  "MSM",     "xxx",
+  "QCOM",    "xxx",
+  "R",       "xxx",
+  "WFM",     "xxx",
+  "SNCR",    "xxx",
+  "PWR",     "xxx",
+  "SWKS",    "xxx",
+  "UNP",     "xxx",
+  "GOOG",    "xxx",
+  "GOOGL",   "xxx"
+)
+
+IndexTickers <- tribble(
+  ~ symbol,  ~ full_names,
+  "^GSPC"	,  "S&P500",
+  "^DJI"	,  "Dow_30",
+  "^IXIC" ,  "Nasdaq",
+  "^RUT"	,  "Russell2000",
+  "^VIX"	,  "Vix",
+  "^GDAXI",  "DAX_index",
+  "^HSI"  ,  "HangSengIndex"
+)
+
+```
+
+Now we pass the tickers to tidyquant::tq_get().
+
+```{r}
+tkr_price_data <- 
+  tq_get(BOICtickers$symbol,                         
+         get = "stock.prices",             
+         from = "1994-01-01",
+         complete_cases = F)
+
+indx_price_data <- 
+  tq_get(IndexTickers$symbol,                         
+         get = "stock.prices",             
+         from = "1994-01-01",
+         complete_cases = F)
+
+```
+
+We have our data and group by the symbol column, displaying the top row for each symbol.
+
+```{r}
+tkr_price_data %>% 
+  group_by(symbol) %>% 
+  slice(1)
+```
+
+We want to visualize the month-to-month change in jobs numbers, which means we need to perform a calculation on our data and store it in a new column. We use mutate() to create the new column and calculate monthly change with value - lag(value, 1). We are not doing any annualizing or seasonality work here – it’s a simple substraction. For yearly change, it would be value - lag(value, 12).
+
+```{r}
+tkr_daily_change <- 
+  tkr_price_data  %>% 
+  select(symbol, date, adjusted) %>%
+  group_by(symbol) %>%  # grouping needed to not lag across adjacent observations for 2 groups
+  mutate(price_change = adjusted - lag(adjusted, 1)) %>% 
+  na.omit()
+```
+
+
+#### Let’s build some charts.
+
+We will start at the top and use ggplot.
+We want positive growth periods to be one color, and negative to be another. 
+
+Next, we create two new columns with mutate(). The first is called col_pos and is formed by if_else(price_change > 0, price_change,...). That logic is creating a column that holds the value of monthly change if monthly change is positive, else it holds NA. We then create another column called col_neg using the same logic.
+
+```{r}
+price_change = tkr_daily_change %>% 
+  filter(symbol == "AAPL") %>% 
+   mutate(col_pos = 
+           if_else(price_change > 0, 
+                  price_change, as.numeric(NA)),
+         col_neg = 
+           if_else(price_change < 0, 
+                  price_change, as.numeric(NA))) %>% 
+  dplyr::select(symbol, date, col_pos, col_neg)
+
+price_change
+```
+
+Have a qucik look at the col_pos and col_neg columns and make sure they look right. col_pos should have only positive and NA values, col_neg shoud have only negative and NA values.
+
+Now we can visualize our monthly changes with ggplot, adding a separate geom for those new columns.
+
+```{r}
+price_change %>% 
+  ggplot(aes(x = date)) +
+  geom_col(aes(y = col_neg),
+               alpha = .85,
+               fill = "pink",
+               color = "pink") +
+  geom_col(aes(y = col_pos),
+               alpha = .85,
+               fill = "lightgreen",
+               color = "lightgreen") +
+  ylab("Change ($/share)") +
+  labs(title = "Price Change",
+       subtitle = "Daily Prices",
+       caption = "Nominal price changes in $/share") +
+  scale_x_date(breaks = scales::pretty_breaks(n = 10)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust=0))
+```
+
+An alternative is to use highcharter to create an interactive chart, responding to mouse-overs.
+
