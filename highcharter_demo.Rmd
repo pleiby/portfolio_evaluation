@@ -88,26 +88,6 @@ fred_empl_data %>%
   slice(1)
 ```
 
-    # A tibble: 15 x 3
-    # Groups:   symbol [15]
-       symbol   date         price
-                  
-     1 MANEMP   2007-01-01  14008 
-     2 NPPTTL   2007-01-01 115437.
-     3 PAYEMS   2007-01-01 137497 
-     4 USCONS   2007-01-01   7725 
-     5 USEHS    2007-01-01  18415 
-     6 USFIRE   2007-01-01   8389 
-     7 USGOVT   2007-01-01  22095 
-     8 USINFO   2007-01-01   3029 
-     9 USLAH    2007-01-01  13338 
-    10 USMINE   2007-01-01    706 
-    11 USPBS    2007-01-01  17834 
-    12 USSERV   2007-01-01   5467 
-    13 USTPU    2007-01-01  26491 
-    14 USTRADE  2007-01-01  15443.
-    15 USWTRADE 2007-01-01   5969.
-
 The symbols are the FRED codes, which are unrecognizable unless you have memorized how those codes map to more intuitive names. Let’s replace them with the better_names column of codes_names_tbl. We will do this with a left_join(). (This explains why I labeled our original column as symbol – it makes the left_join() easier.) Special thanks to Jenny Bryan for pointing out this [code flow](http://stat545.com/bit008_lookup.html)!
 
 ```{r}
@@ -118,26 +98,6 @@ fred_empl_data %>%
   group_by(better_names) %>% 
   slice(1)
 ```
-
-    # A tibble: 15 x 3
-    # Groups:   better_names [15]
-       better_names       date         price
-                            
-     1 ADP Estimate       2007-01-01 115437.
-     2 Construction       2007-01-01   7725 
-     3 Financial          2007-01-01   8389 
-     4 Gov                2007-01-01  22095 
-     5 Health Care        2007-01-01  18415 
-     6 Info Sys           2007-01-01   3029 
-     7 Leisure            2007-01-01  13338 
-     8 Manufact           2007-01-01  14008 
-     9 Mining             2007-01-01    706 
-    10 Nonfarm Employment 2007-01-01 137497 
-    11 Other Services     2007-01-01   5467 
-    12 Prof/Bus Serv      2007-01-01  17834 
-    13 Retail/Trade       2007-01-01  15443.
-    14 Transportation     2007-01-01  26491 
-    15 Wholesale Trade    2007-01-01   5969.
 
 That looks much better, but we now have a column called price, that holds the monthly employment observations, and a column called better_names, that holds the more intuitive group names. Let’s change those column names to employees and sector.
 
@@ -150,16 +110,6 @@ fred_empl_data <- fred_empl_data %>%
 
 head(fred_empl_data)
 ```
-
-# A tibble: 6 x 3
-  sector       date       employees
-                   
-1 ADP Estimate 2007-01-01   115437.
-2 ADP Estimate 2007-02-01   115527.
-3 ADP Estimate 2007-03-01   115647 
-4 ADP Estimate 2007-04-01   115754.
-5 ADP Estimate 2007-05-01   115809.
-6 ADP Estimate 2007-06-01   115831.
 
 fred_empl_data has the names and organization we want, but it still has the raw number of employees per month. 
 

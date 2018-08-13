@@ -13,11 +13,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Accesible from from BetterInvesting
 
-```{r cars}
+```{r getLibraries}
 library(tidyverse)
 library(readr)
 library(tidyquant)
 ```
+
+```{r}
+datapath = "./data/"
+```
+
 
 
 ```{r pressure, echo=FALSE}
@@ -30,6 +35,8 @@ tkrData = read_delim("BOIC_Portfolio_AnnualData_20180506.txt",
 tkrData
 
 ```
+
+http://tools.betterinvesting.org/cr/crreport.aspx?ticker=aapl
 
 ```{r}
 tkrData %>% ggplot(aes(x=Year, y=HighPrice/EPS, colour=TKR)) + 
@@ -115,6 +122,15 @@ tkr_price_data %>%
   slice(1)
 ```
 
+Save the downloaded data
+
+```{r writeTkrDataToCSV, include=F}
+tkr_price_data %>% select(date, symbol, adjusted) %>%
+  write.csv(file = paste0(datapath,"BOICtickersPrices.csv"))
+indx_price_data %>% select(date, symbol, adjusted) %>%
+  write.csv(file = paste0(datapath,"indxtickersPrices.csv"))
+```
+
 We want to visualize the month-to-month change in jobs numbers, which means we need to perform a calculation on our data and store it in a new column. We use mutate() to create the new column and calculate monthly change with value - lag(value, 1). We are not doing any annualizing or seasonality work here – it’s a simple substraction. For yearly change, it would be value - lag(value, 12).
 
 ```{r}
@@ -177,3 +193,22 @@ price_change %>%
 
 An alternative is to use highcharter to create an interactive chart, responding to mouse-overs.
 
+```{r}
+mprice_change <- 
+  tkr_price_data  %>% 
+  select(symbol, date, adjusted) %>%
+  mutate(lnprice = log(adjusted)) %>%
+  mutate(month = month(date),
+         year = year(date)) %>%
+  group_by(symbol) %>%  # grouping needed to not lag across adjacent observations for 2 groups
+  mutate(dlnprice = lnprice - lag(lnprice, 1)) %>% 
+  na.omit() %>%
+  group_by(symbol, year, month) %>%
+  summarize(m_dln_price = sum(dlnprice)) %>%
+  ungroup() %>%
+  # may be a better function in lubridate for this date conversion
+  mutate(date = as.Date(paste(year, month, "15", sep='-')))
+  
+```
+
+Display Monthly Price Changes Graphically
