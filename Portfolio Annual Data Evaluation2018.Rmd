@@ -1,7 +1,7 @@
 ---
 title: "Portfolio Annual Data Evaluation"
 author: "Paul Leiby"
-date: "Aug 11, 2018"
+date: "April 20, 2020"
 output: word_document
 ---
 
@@ -14,13 +14,15 @@ knitr::opts_chunk$set(echo = TRUE)
 Accesible from from BetterInvesting
 
 ```{r getLibraries}
+library(here)
 library(tidyverse)
 library(readr)
 library(tidyquant)
+library(knitr)  # for kable
 ```
 
 ```{r}
-datapath = "./data/"
+datapath = "data/"
 ```
 
 
@@ -45,27 +47,80 @@ tkrData %>% ggplot(aes(x=Year, y=HighPrice/EPS, colour=TKR)) +
 
 ### Gather stock price histories from Yahoo Finance
 
-```{r}
-BOICtickers <- tribble(
-  ~ symbol,  ~ full_names,
-  "AAPL",    "Apple",
-  "CMI",     "Cummins",
-  "CP",      "Canadian Pacific",
-  "CRI",     "Carters Inc",
-  "DISCA",   "Discovery Comm",  
-  "DKS",     "Dicks Sporting Goods",
-  "DY",      "Dycom", 
-  "GIL",     "Gilden",
-  "GOOG",    "Google",
-  "JAZZ",    "Jazz Pharma",
-  "LKQ",     "LKQ",
-  "PHM",     "Pulte",
-  "QCOM",    "Qualcomm",
-  "R",       "Ryder")
+```{r readRecentValuation}
+Valuation20200208 <- tribble(
+~Security           , ~symbol,~FirstPurchase, ~SharesOwned, ~CostPerShr, ~TotalCost, ~CurrPrice, ~MarketValue, ~PctOfTotal,
+"Amazon.com Inc       ","AMZN", "10/14/19", 10.0  ,1728.9100,17289.10 ,2079.28 ,20792.80 ,9.6,
+"BJ Restaurants       ","BJRI", "04/15/19", 212.0 ,46.5228  ,9862.83  ,41.87   ,8876.44  ,4.1,
+"Columbia Sportswear  ","COLM", "11/11/19", 150.0 ,93.3900  ,14008.50 ,90.45   ,13567.50 ,6.3,
+"Canadian Pacific Rai ","CP",   "06/20/16", 60.0  ,148.4933 ,8909.60  ,267.00  ,16020.00 ,7.4,
+"G III Apparel Group  ","GIII", "03/04/19", 332.0 ,36.0709  ,11975.55 ,27.76   ,9216.32  ,4.3,
+"Google Alphabet Clas ","GOOG", "08/11/08", 16.0  ,931.2044 ,14899.27 ,1479.23 ,23667.68 ,11.0,
+"Graphc Pack Hldg     ","GPK",  "09/10/18", 424.0 ,14.1664  ,6006.55  ,15.86   ,6724.64  ,3.1,
+"Healthcare Services  ","HCSG", "03/12/18", 200.0 ,47.4448  ,9488.95  ,26.42   ,5284.00  ,2.5,
+"Jazz Pharmaceuticals ","JAZZ", "11/21/16", 76.0  ,131.0114 ,9956.87  ,142.54  ,10833.04 ,5.0,
+"LKQ                  ","LKQ",  "09/15/14", 658.0 ,27.3488  ,17995.52 ,32.93   ,21667.94 ,10.1,
+"Mastec Inc           ","MTZ",  "01/16/18", 90.0  ,53.2272  ,4790.45  ,56.86   ,5117.40  ,2.4,
+"Nvidia Corp          ","NVDA", "02/11/19", 68.0  ,146.4922 ,9961.47  ,251.59  ,17108.12 ,7.9,
+"Skyworks Solutions   ","SWKS", "02/10/14", 104.0 ,96.3368  ,10019.03 ,113.94  ,11849.76 ,5.5,
+"Thor Industries Inc  ","THO",  "08/13/18", 102.0 ,96.4381  ,9836.69  ,81.23   ,8285.46  ,3.8,
+"Totals               ","total", NA       , NA      , NA      ,155000.38, NA,179011.10 ,83.1
+)
 
+Valuation20200419 <- tribble(
+  ~Security           , ~symbol,~FirstPurchase, ~SharesOwned, ~CostPerShr, ~TotalCost, ~CurrPrice, ~MarketValue, ~PctOfTotal,
+"BJ Restaurants       ","BJRI", "04/15/19" ,212.0 , 46.5228 , 9862.83  ,17.39  , 3686.68 ,2.0,
+"Columbia Sportswear  ","COLM", "11/11/19" ,150.0 , 93.3900 , 14008.50 ,72.44  , 10866.00,6.0,
+"G III Apparel Group  ","GIII", "03/04/19" ,332.0 , 36.0709 , 11975.55 ,9.34   , 3100.88 ,1.7,
+"Graphc Pack Hldg     ","GPK",  "09/10/18" ,424.0 , 14.1664 , 6006.55  ,13.18  , 5588.32 ,3.1,
+"Healthcare Services  ","HCSG", "03/12/18" ,200.0 , 47.4448 , 9488.95  ,20.92  , 4184.00 ,2.3,
+"Jazz Pharmaceuticals ","JAZZ", "11/21/16" ,76.0  , 131.0114, 9956.87  ,111.19 , 8450.44 ,4.7,
+"LKQ                  ","LKQ",  "09/15/14" ,565.0 , 26.3850 , 14907.53 ,20.94  , 11831.10,6.6,
+"Mastec Inc           ","MTZ",  "01/16/18" ,90.0  , 53.2272 , 4790.45  ,34.80  , 3132.00 ,1.7,
+"Skyworks Solutions   ","SWKS", "02/10/14" ,104.0 , 96.3368 , 10019.03 ,95.40  , 9921.60 ,5.5,
+"Thor Industries Inc  ","THO",  "08/13/18" ,102.0 , 96.4381 , 9836.69  ,53.27  , 5433.54 ,3.0,
+"Totals               ","total", NA        , NA      , NA       ,100852.95 , NA, 66194.56 ,36.8
+)
+```
+
+
+```{r}
+Valuation <- Valuation20200419 %>%
+  filter(symbol != "total")
+ValuationDate = as.Date(2020/04/19)
+
+BOICtickers <- Valuation20200208 %>% # use current or prior portfolio
+  filter(symbol != "total") %>%
+  select(symbol, Security) 
+# BOICtickers <- tribble(
+#   ~ symbol,  ~ full_names,
+#   "AMZN",    "Amazon",
+#   "AAPL",    "Apple",
+#   "BJRI",    "BJ Restaurants",
+#   "COLM",    "Columbia Sportswear",
+#   "CP",      "Canadian Pacific",
+#   "CRI",     "Carters Inc",
+#   "DISCA",   "Discovery Comm",  
+#   "DKS",     "Dicks Sporting Goods",
+#   "DY",      "Dycom", 
+#   "GIL",     "Gilden",
+#   "GOOG",    "Google",
+#   "JAZZ",    "Jazz Pharma",
+#   "LKQ",     "LKQ",
+#   "PHM",     "Pulte",
+#   "QCOM",    "Qualcomm",
+#   "R",       "Ryder")
+```
+
+```{r displayPortfolio}
+Valuation %>%
+  kable(caption = paste0("Recent Portfolio Valuation, as of ", ValuationDate))
+```
+
+```{r}
 BOICtickersHistorical <- tribble(
   ~ symbol,  ~ full_names,
-  "AAPL",    "xxx",
+  "AAPL",    "Apple",
   "CBI",     "xxx",
   "CMI",     "xxx",
   "EMC",     "xxx",
@@ -100,17 +155,25 @@ IndexTickers <- tribble(
 Now we pass the tickers to tidyquant::tq_get().
 
 ```{r}
-tkr_price_data <- 
-  tq_get(BOICtickers$symbol,                         
-         get = "stock.prices",             
-         from = "1994-01-01",
-         complete_cases = F)
+refreshPriceData = F # plan to read price data from the web
 
-indx_price_data <- 
-  tq_get(IndexTickers$symbol,                         
-         get = "stock.prices",             
-         from = "1994-01-01",
-         complete_cases = F)
+if (refreshPriceData) {
+  tkr_price_data <- 
+    tq_get(BOICtickers$symbol,                         
+           get = "stock.prices",             
+           from = "1994-01-01",
+           complete_cases = F)
+  
+  indx_price_data <- 
+    tq_get(IndexTickers$symbol,                         
+           get = "stock.prices",             
+           from = "1994-01-01",
+           complete_cases = F)
+} else {
+  tkr_price_data <- read_csv(file = here::here(datapath,"BOICtickersPrices.csv"))
+  indx_price_data <- read_csv(file = here::here(datapath,"indxtickersPrices.csv"))
+}
+
 
 ```
 
@@ -119,26 +182,34 @@ We have our data and group by the symbol column, displaying the top row for each
 ```{r}
 tkr_price_data %>% 
   group_by(symbol) %>% 
-  slice(1)
+  slice(1) # show the first record of each group
 ```
 
 Save the downloaded data
 
 ```{r writeTkrDataToCSV, include=F}
-tkr_price_data %>% select(date, symbol, adjusted) %>%
-  write.csv(file = paste0(datapath,"BOICtickersPrices.csv"))
-indx_price_data %>% select(date, symbol, adjusted) %>%
-  write.csv(file = paste0(datapath,"indxtickersPrices.csv"))
+if (refreshPriceData) { # save newly-read data
+  tkr_price_data %>% select(date, symbol, adjusted) %>%
+    write.csv(file = here::here(datapath,"BOICtickersPrices.csv"))
+  indx_price_data %>% select(date, symbol, adjusted) %>%
+    write.csv(file = here::here(datapath,"indxtickersPrices.csv"))
+}
 ```
 
-We want to visualize the month-to-month change in jobs numbers, which means we need to perform a calculation on our data and store it in a new column. We use mutate() to create the new column and calculate monthly change with value - lag(value, 1). We are not doing any annualizing or seasonality work here – it’s a simple substraction. For yearly change, it would be value - lag(value, 12).
+We want to visualize the period-to-period change in prices.
 
-```{r}
+We are not doing any annualizing or seasonality work here – it’s a simple substraction.
+For yearly change, it would be value - lag(value, NunPeriodsPerYear).
+
+```{r compute }
+all_price_data <- tkr_price_data %>%
+  bind_rows(indx_price_data)
+
 tkr_daily_change <- 
-  tkr_price_data  %>% 
+  all_price_data  %>% 
   select(symbol, date, adjusted) %>%
   group_by(symbol) %>%  # grouping needed to not lag across adjacent observations for 2 groups
-  mutate(price_change = adjusted - lag(adjusted, 1)) %>% 
+  mutate(price_change = log(adjusted) - lag(log(adjusted), 1)) %>% 
   na.omit()
 ```
 
@@ -150,52 +221,29 @@ We want positive growth periods to be one color, and negative to be another.
 
 Next, we create two new columns with mutate(). The first is called col_pos and is formed by if_else(price_change > 0, price_change,...). That logic is creating a column that holds the value of monthly change if monthly change is positive, else it holds NA. We then create another column called col_neg using the same logic.
 
-```{r}
+```{r calcDailyPriceChange}
 price_change = tkr_daily_change %>% 
-  filter(symbol == "AAPL") %>% 
    mutate(col_pos = 
            if_else(price_change > 0, 
                   price_change, as.numeric(NA)),
          col_neg = 
            if_else(price_change < 0, 
-                  price_change, as.numeric(NA))) %>% 
-  dplyr::select(symbol, date, col_pos, col_neg)
+                  price_change, as.numeric(NA)))
 
-price_change
+price_change %>%
+  dplyr::select(symbol, date, col_pos, col_neg) %>%
+  filter(symbol == "AMZN")
 ```
 
 Have a qucik look at the col_pos and col_neg columns and make sure they look right. col_pos should have only positive and NA values, col_neg shoud have only negative and NA values.
 
-Now we can visualize our monthly changes with ggplot, adding a separate geom for those new columns.
 
-```{r}
-price_change %>% 
-  ggplot(aes(x = date)) +
-  geom_col(aes(y = col_neg),
-               alpha = .85,
-               fill = "pink",
-               color = "pink") +
-  geom_col(aes(y = col_pos),
-               alpha = .85,
-               fill = "lightgreen",
-               color = "lightgreen") +
-  ylab("Change ($/share)") +
-  labs(title = "Price Change",
-       subtitle = "Daily Prices",
-       caption = "Nominal price changes in $/share") +
-  scale_x_date(breaks = scales::pretty_breaks(n = 10)) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1),
-        plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5),
-        plot.caption = element_text(hjust=0))
-```
 
 An alternative is to use highcharter to create an interactive chart, responding to mouse-overs.
 
-```{r}
+```{r calcMonthlyPriceChange}
 mprice_change <- 
-  tkr_price_data  %>% 
+  all_price_data  %>% 
   select(symbol, date, adjusted) %>%
   mutate(lnprice = log(adjusted)) %>%
   mutate(month = month(date),
@@ -209,6 +257,142 @@ mprice_change <-
   # may be a better function in lubridate for this date conversion
   mutate(date = as.Date(paste(year, month, "15", sep='-')))
   
+mprice_change = mprice_change %>% 
+   mutate(
+     col_pos = 
+       if_else(m_dln_price > 0, m_dln_price, as.numeric(NA)),
+     col_neg = 
+       if_else(m_dln_price < 0, 
+               m_dln_price, as.numeric(NA)))
+
 ```
 
 Display Monthly Price Changes Graphically
+
+```{r}
+plotUpsAndDown  <- function(df, 
+                            currsymbol = "", 
+                            currtitle = "Fractional Price Change", 
+                            currsubtitle = "Monthly Prices",
+                            earliestDataWanted = "1960/01/01") {
+  earliest = as.Date(earliestDataWanted)
+  df %>% 
+    filter(date >= earliest) %>%
+    filter(symbol == currsymbol) %>%
+    select(symbol, date, col_pos, col_neg) %>%
+    ggplot(aes(x = date)) +
+    geom_col(aes(y = col_neg),
+                 alpha = .85,
+                 fill = "pink",
+                 color = "pink") +
+    geom_col(aes(y = col_pos),
+                 alpha = .85,
+                 fill = "lightgreen",
+                 color = "lightgreen") +
+    ylab("Change (Pct/month)") +
+    labs(title = currtitle,
+         subtitle = paste0(currsubtitle, ", ", currsymbol),
+         caption = "Fractional price changes (in $/share)%/100") +
+    scale_x_date(breaks = scales::pretty_breaks(n = 10)) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1),
+          plot.title = element_text(hjust = 0.5),
+          plot.subtitle = element_text(hjust = 0.5),
+          plot.caption = element_text(hjust=0))
+}
+```
+
+```{r}
+plotUpsAndDown(df = price_change, currsymbol = "AMZN", currtitle = "Fractional Price Change", currsubtitle = "Daily Prices") 
+```
+
+```{r}
+plotUpsAndDown(df = mprice_change, currsymbol = "AMZN", currtitle = "Fractional Price Change", currsubtitle = "Monthly Prices") 
+```
+
+```{r}
+plotUpsAndDown(df = price_change, currsymbol = "BJRI", 
+               currtitle = "Fractional Price Change", 
+               currsubtitle = "Daily Prices") 
+```
+
+```{r}
+plotUpsAndDown(df = mprice_change, currsymbol = "BJRI", 
+               currtitle = "Fractional Price Change", 
+               currsubtitle = "Monthly Prices",
+               earliestDataWanted = "2020/01/01") 
+```
+
+
+```{r}
+plotUpsAndDown(df = price_change, currsymbol = "BJRI", 
+               currtitle = "Fractional Price Change", 
+               currsubtitle = "Daily Prices",
+               earliestDataWanted = "2020/01/01") 
+```
+### Compare price movements acroos securities
+
+```{r defFn_plotRelativePrices}
+plotRelativePrices  <- function(df, 
+                            currSymbolsWanted = c("^GSPC"),
+                            currtitle = "Relative Prices", 
+                            currsubtitle = "Monthly Prices",
+                            earliestDateWanted = "1960/01/01",
+                            relativeP = F) {
+
+  earliest <- as.Date(earliestDateWanted)
+  df <- df %>%  # restrict to dates and tickers wanted
+    filter(date >= earliest) %>%
+    filter(symbol %in% currSymbolsWanted)
+
+  earliest <- df %>% 
+    # ungroup() %>%
+    select(date) %>%
+    pull() %>%
+    min() # this makes sure the the earliest actually a trade date with obs
+
+  if (relativeP == T) {
+    df <- df %>%
+    group_by(symbol) %>%
+    mutate( # calculate relative prices compared to earliest date wanted
+      adjusted = adjusted/adjusted[date == earliest]
+    )
+  }
+
+  df %>% # plot this up
+    group_by(symbol) %>%
+    ggplot(aes(x = date, y=adjusted, color=symbol)) +
+    ylab("Relative Price") +
+    labs(title = currtitle,
+         subtitle = paste0(currsubtitle),
+         caption = paste0("Prices over starting Price on ", earliest)) +
+    geom_line() +
+    scale_x_date(breaks = scales::pretty_breaks(n = 10)) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1),
+          plot.title = element_text(hjust = 0.5),
+          plot.subtitle = element_text(hjust = 0.5),
+          plot.caption = element_text(hjust=0))
+}
+```
+
+```{r}
+stocksWanted = c("^GSPC", "AMZN", "NVDA", "GOOG", "^VIX")
+
+plotRelativePrices(price_change, currSymbolsWanted = stocksWanted, 
+                 earliestDateWanted = "2019/01/01",  relativeP = T)
+```
+
+```{r}
+plotRelativePrices(price_change, currSymbolsWanted = stocksWanted, 
+                 earliestDateWanted = "2020/01/01",  relativeP = T)
+```
+
+```{r}
+stocksWanted = c("^GSPC", BOICtickers$symbol)
+stocksWanted
+
+plotRelativePrices(price_change, currSymbolsWanted = stocksWanted, 
+                   earliestDateWanted = "2020/01/03",  relativeP = T)
+```
+
