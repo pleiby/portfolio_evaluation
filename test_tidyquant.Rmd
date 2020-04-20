@@ -1,0 +1,73 @@
+---
+title: "test tidyquant"
+author: "Paul N. Leiby"
+date: "4/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+# Load required packages.
+library(tidyr)
+library(dplyr)
+library(tibble)
+```
+
+```{r}
+# Custom R function as Data.
+Stock3.func <- function(){
+  require(quantmod)
+  google <- rownames_to_column(data.frame(getSymbols("GOOG", auto.assign = FALSE)))
+  facebook <- rownames_to_column(data.frame(getSymbols("FB", auto.assign = FALSE)))
+  twitter <- rownames_to_column(data.frame(getSymbols("TWTR", auto.assign = FALSE)))
+  amazon <- rownames_to_column(data.frame(getSymbols("AMZN", auto.assign = FALSE)))
+  msft <- rownames_to_column(data.frame(getSymbols("MSFT", auto.assign = FALSE)))
+  apple <- rownames_to_column(data.frame(getSymbols("AAPL", auto.assign = FALSE)))
+  bind_rows(google, facebook,amazon, apple, twitter, msft)
+}
+# Data Analysis Steps
+Stock3.func() %>%
+  gather(measures, value, -rowname, na.rm = TRUE) %>%
+  separate(measures, into = c("symbol", "measure"), sep = "\\.", remove = TRUE, convert = FALSE, extra = "drop", fill = "right") %>%
+  spread(measure, value) %>%
+  rename(date = rowname)
+```
+
+`tq_get`
+
+- "economic.data": Get economic data from FRED. rapper for quantmod::getSymbols.FRED()
+
+- "quandl": Get data sets from Quandl. Wrapper for Quandl::Quandl(). See also quandl_api_key().
+
+- "tiingo": Get data sets from Tiingo. Wrapper for riingo::riingo_prices(). See also tiingo_api_key().
+
+- "tiingo.iex": Get data sets from Tiingo. Wrapper for riingo::riingo_iex_prices(). See also tiingo_api_key().
+
+- "tiingo.crypto": Get data sets from Tiingo. Wrapper for riingo::riingo_crypto_prices(). See also tiingo_api_key().
+
+- "alphavantager": Get data sets from Alpha Vantage. Wrapper for alphavantager::av_get(). See also av_api_key().
+
+```{r}
+library(tidyquant)
+
+SP500composition <- tq_index(x = "SP500")
+
+SP500prices <- tq_index(x = "SP500") %>%
+  tq_get(get = "stock.prices")
+
+SP500prices <- SP500prices %>%
+  select(symbol, company, date, adjusted)
+
+write_csv(x = SP500prices, here::here(datapath, "SP500prices.csv"))
+write_csv(x = SP500composition, here::here(datapath, "SP500composition.csv"))
+```
+
+```{r}
+# quantmod::getSymbols.FRED()
+```
+
